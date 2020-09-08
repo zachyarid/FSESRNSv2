@@ -1,0 +1,573 @@
+@extends('layouts.template')
+
+@section('content')
+    <div class="row">
+        <div class="col-xs-12 col-md-6 col-lg-6 col-xl-4">
+            <div class="card-box tilebox-two">
+                <button class="btn btn-sm btn-custom waves-effect waves-light pull-xs-right" data-toggle="modal" data-target="#GCFPayeeModal">View</button>
+                <h4 class="text-muted text-uppercase m-b-15">GCFs By Payee</h4>
+            </div>
+        </div>
+
+        <div class="col-xs-12 col-md-6 col-lg-6 col-xl-4">
+            <div class="card-box tilebox-two">
+                <button class="btn btn-sm btn-custom waves-effect waves-light pull-xs-right" data-toggle="modal" data-target="#GCFFBOModal">View</button>
+                <h4 class="text-muted text-uppercase m-b-15">GCFs By FBO</h4>
+            </div>
+        </div>
+
+        <div class="col-xs-12 col-md-6 col-lg-6 col-xl-4">
+            <div class="card-box tilebox-two">
+                <button class="btn btn-sm btn-custom waves-effect waves-light pull-xs-right" data-toggle="modal" data-target="#MaintModal">View</button>
+                <h4 class="text-muted text-uppercase m-b-15">Maintenance Revenue</h4>
+            </div>
+        </div>
+    </div>
+    <!-- end row -->
+
+    <div class="row">
+        <div class="col-xs-12 col-lg-12 col-xl-8">
+            <div class="card-box">
+                <h4 class="text-muted text-uppercase header-title m-t-0 m-b-20">Historic GCFs Generated</h4>
+                <div id="historic-gcf" style="height: 250px;"></div>
+            </div>
+        </div><!-- end col-->
+
+        <div class="col-xs-12 col-lg-12 col-xl-4">
+            <div class="card-box">
+                <button class="btn btn-sm btn-custom waves-effect waves-light pull-xs-right" data-toggle="modal" data-target="#RefuelRevenue">View</button>
+                <h4 class="text-muted text-uppercase header-title m-t-0 m-b-30">Refuelling Revenue</h4>
+
+                <p class="text-muted"><strong>Total Revenue:</strong> ${{ number_format($reportData->totalrev, 2) }}</p>
+                <p class="text-muted"><strong>Total Gallons Sold:</strong> {{ number_format($reportData->totalgal, 0) }}</p>
+                <p class="text-muted"><strong>Total Fuel Cost:</strong> ${{ number_format($reportData->totalcogs, 2) }}</p>
+                <p class="text-muted"><strong>Total Refuelling Profit:</strong> ${{ number_format($reportData->totalprof, 2) }}</p>
+
+
+            </div>
+        </div><!-- end col-->
+
+        <div class="col-xs-12 col-lg-12 col-xl-4">
+            <div class="card-box">
+                <h3 class="text-muted text-uppercase header-title m-t-0 m-b-30">FBO Profit/Loss</h3>
+                <div class="form-group">
+                    <div class="col-md-7">
+                        <select id="fbo_id_pandl" name="fbo_id_pandl" class="select2 form-control col-md-4">
+                            <option disabled selected value="-1">Select an FBO</option>
+                            @foreach ($subscription->group->fsefbos as $f)
+                                <option value="{{ $f->id }}">{{ $f->icao }} - {{ $f->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select id="months_back" name="months_back" class="select2 form-control col-md-4">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6" selected>6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                            <option value="11">11</option>
+                            <option value="12">12</option>
+                            <option value="18">18</option>
+                            <option value="24">24</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-custom" onclick="getPandLData()">View</button>
+                </div>
+
+                <button class="btn btn-custom" style="display:none;" onclick="requestPandL()">Request P/L for all FBOs</button>
+            </div>
+        </div><!-- end col-->
+    </div>
+
+    <div id="GCFPayeeModal" class="modal fade" tabindex="-1" role="dialog" style="display: none;">
+        <div class="modal-dialog modal-lg" style="width:700px;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                    <h4 class="modal-title text-lg-center" id="myModalLabel">GCFs Generated By Payee</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table id="gcf_payee" class="table table-striped table-bordered dataTable no-footer" style="width:100%">
+                            <thead>
+                            <tr>
+                                <th>Payment From / Pilot</th>
+                                <th>Total</th>
+                                <th>Total GCFs</th>
+                                <th>Average GCF</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($reportData->paymentsByPayee as $key => $value)
+                                    <tr>
+                                        <td>{!! $key !!}</td>
+                                        <td>${{ number_format($reportData->paymentsByPayee[$key]['gcfs'],2) }}</td>
+                                        <td>{{ number_format($reportData->paymentsByPayee[$key]['count'],0) }}</td>
+                                        <td>${{ number_format($reportData->paymentsByPayee[$key]['avg'],2) }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="4">No data available!</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div>
+    <div id="GCFFBOModal" class="modal fade" tabindex="-1" role="dialog" style="display: none;">
+        <div class="modal-dialog modal-lg" style="width:700px;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                    <h4 class="modal-title text-lg-center" id="myModalLabel">GCFs Generated By FBO</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table id="gcf_fbo" class="table table-striped table-bordered dataTable no-footer" style="width:100%">
+                            <thead>
+                            <tr>
+                                <th>FBO</th>
+                                <th>Total</th>
+                                <th>Total GCFs</th>
+                                <th>Average GCF</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($reportData->fbos as $fbo)
+                                    <tr>
+                                        <td>{!! $fbo->icao . ' ' . $fbo->name !!}</td>
+                                        <td>${{ $fbo->gcfrev }}</td>
+                                        <td>{{ $fbo->gcfcount == null ? '0' : $fbo->gcfcount }}</td>
+                                        <td>${{ $fbo->gcfavg == 0 ? '0' : $fbo->gcfavg }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="4">No data available!</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div>
+    <div id="MaintModal" class="modal fade" tabindex="-1" role="dialog" style="display: none;">
+        <div class="modal-dialog modal-lg" style="width:700px;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                    <h4 class="modal-title text-lg-center" id="myModalLabel">Maintenance Data</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table id="gcf_fbo" class="table table-striped table-bordered dataTable no-footer" style="width:100%">
+                            <thead>
+                            <tr>
+                                <th>Revenue</th>
+                                <th>Cost</th>
+                                <th>Profit</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>${{ number_format($reportData->maintrev,2) }}</td>
+                                    <td>${{ number_format($reportData->maintcost,2) }}</td>
+                                    <td>${{ number_format($reportData->maintrev - $reportData->maintcost,2) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div>
+    <div id="RefuelRevenue" class="modal fade" tabindex="-1" role="dialog" style="display: none;">
+        <div class="modal-dialog modal-lg" style="width:700px;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                    <h4 class="modal-title text-lg-center" id="myModalLabel">Refuelling Data</h4>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs m-b-10" id="myTab" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="all-tab" data-toggle="tab" href="#all" role="tab" aria-controls="all" aria-expanded="true">Total Refuelling Revenue</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="ll-tab" data-toggle="tab" href="#ll" role="tab" aria-controls="ll" aria-expanded="false">100LL Refuelling Revenue</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="jeta-tab" data-toggle="tab" href="#jeta" role="tab" aria-controls="jeta" aria-expanded="false">JetA Refuelling Revenue</a>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="myTabContent">
+                        <div role="tabpanel" class="tab-pane fade active in" id="all">
+                            <div class="table-responsive">
+                                <table id="total_rev" class="table table-striped table-bordered dataTable no-footer" style="width:100%">
+                                    <thead>
+                                    <tr>
+                                        <th>FBO</th>
+                                        <th>Total Revenue</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse ($reportData->fbos as $fbo)
+                                            <tr>
+                                                <td>{!! $fbo->icao . ' ' . $fbo->name !!}</td>
+                                                <td>${{ number_format($fbo->llrev+$fbo->jetarev, 2) }}</td>
+                                            </tr>
+                                        @empty
+                                            <tr><td colspan="2">No data available!</td></tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="ll">
+                            <div class="table-responsive">
+                                <table id="ll_revenue" class="table table-striped table-bordered dataTable no-footer" style="width:100%">
+                                    <thead>
+                                    <tr>
+                                        <th>FBO</th>
+                                        <th>Revenue</th>
+                                        <th>Gallons Sold</th>
+                                        <th>Fuel Cost</th>
+                                        <th>Profit</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse ($reportData->fbos as $fbo)
+                                            <tr>
+                                                <td>{!! $fbo->icao . ' ' . $fbo->name !!}</td>
+                                                <td>${{ number_format($fbo->llrev, 2) }}</td>
+                                                <td>{{ number_format($fbo->llgallonssold,0) }}</td>
+                                                <td>${{ number_format($fbo->llcog,2) }}</td>
+                                                <td>${{ number_format($fbo->llprof,2) }}</td>
+                                            </tr>
+                                        @empty
+                                            <tr><td colspan="5">No data available!</td></tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="jeta">
+                            <div class="table-responsive">
+                                <table id="jeta_revenue" class="table table-striped table-bordered dataTable no-footer" style="width:100%">
+                                    <thead>
+                                    <tr>
+                                        <th>FBO</th>
+                                        <th>Revenue</th>
+                                        <th>Gallons Sold</th>
+                                        <th>Fuel Cost</th>
+                                        <th>Profit</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse ($reportData->fbos as $fbo)
+                                            <tr>
+                                                <td>{!! $fbo->icao . ' ' . $fbo->name !!}</td>
+                                                <td>${{ number_format($fbo->jetarev, 2) }}</td>
+                                                <td>{{ number_format($fbo->jetagallonssold,0) }}</td>
+                                                <td>${{ number_format($fbo->jetacog,2) }}</td>
+                                                <td>${{ number_format($fbo->jetaprof,2) }}</td>
+                                            </tr>
+                                        @empty
+                                            <tr><td colspan="5">No data available!</td></tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div>
+    <div id="FBOpAndL" class="modal fade" tabindex="-1" role="dialog" style="display: none;">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                    <h3 class="modal-title text-lg-center" id="myModalLabel">FBO Profit and Loss</h3>
+                    <h4 class="modal-title text-lg-center" id="fboTitle"></h4>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table id="tblPandl" class="table table-striped table-bordered dataTable no-footer" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th>Month Year</th>
+                                    <th>GCF Revenue</th>
+                                    <th>Refuelling Profit</th>
+                                    <th>Maintenance Profit</th>
+                                    <th>Equipment Install Profit</th>
+                                    <th>PT Income</th>
+                                    <th>Supply Cost</th>
+                                    <th>Net Profit/Loss</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div>
+@endsection
+
+@section('script-source')
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('.select2').select2();
+
+            $('#gcf_fbo').DataTable({
+                responsive: true,
+                bLengthChange: true,
+                aaSorting: [1],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '',
+                    lengthMenu: '_MENU_ items/page'
+                }
+            });
+
+            $('#gcf_payee').DataTable({
+                responsive: true,
+                bLengthChange: true,
+                aaSorting: [1],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '',
+                    lengthMenu: '_MENU_ items/page'
+                }
+            });
+
+            $('#total_rev').DataTable({
+                responsive: true,
+                bLengthChange: true,
+                aaSorting: [1],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '',
+                    lengthMenu: '_MENU_ items/page'
+                }
+            });
+
+            $('#ll_revenue').DataTable({
+                responsive: true,
+                bLengthChange: true,
+                aaSorting: [1],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '',
+                    lengthMenu: '_MENU_ items/page'
+                }
+            });
+
+            $('#jeta_revenue').DataTable({
+                responsive: true,
+                bLengthChange: true,
+                aaSorting: [1],
+                language: {
+                    searchPlaceholder: 'Search...',
+                    sSearch: '',
+                    lengthMenu: '_MENU_ items/page'
+                }
+            });
+
+            var formatter = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2,
+            });
+
+            Morris.Bar({
+                "barSizeRatio": 0.75,
+                "barGap": 3,
+                "barOpacity": 1,
+                "barRadius": [0, 0, 0, 0],
+                "xLabelMargin": 50,
+                "barColors": ["#0b62a4", "#7a92a3", "#4da74d", "#afd8f8", "#edc240", "#cb4b4b", "#9440ed"],
+                "stacked": false,
+                "xkey": ["y"],
+                "ykeys": ["a"],
+                "labels": ["GCF Revenue"],
+                "ymax": "auto",
+                "onlyIntegers": true,
+                "ymin": 0,
+                "hideHover": "auto",
+                "axes": true,
+                "grid": true,
+                "gridTextColor": "#888",
+                "gridTextSize": "12",
+                "gridTextFamily": "sans-serif",
+                "gridTextWeight": "normal",
+                "resize": false,
+                "rangeSelectColor": "#eef",
+                "padding": 25,
+                "numLines": 5,
+                "eventStrokeWidth": 1,
+                "eventLineColors": ["#005a04", "#ccffbb", "#3a5f0b", "#005502"],
+                "goalStrokeWidth": 1,
+                "goalLineColors": ["#666633", "#999966", "#cc6666", "#663333"],
+                "parseTime": true,
+                "xLabelAngle": 30,
+                "element": "historic-gcf",
+                "data": [ {!! $historic_gcf !!} ],
+                "functions": ["hoverCallback", "formatter", "dateFormat"],
+                "yLabelFormat": function (x) {
+                    return formatter.format(x);
+                },
+            });
+        });
+
+        function getPandLData()
+        {
+            var fboid = $('#fbo_id_pandl').find(":selected").val();
+            var num = $('#months_back').find(":selected").val();
+
+            if (fboid == -1)
+            {
+                alert("Please select an FBO");
+                return
+            }
+
+            toastr["info"]("Data is being retrieved", "Please wait", {
+                "closeButton": true,
+                "debug": false,
+                "newestOnTop": false,
+                "progressBar": true,
+                "positionClass": "toast-bottom-full-width",
+                "preventDuplicates": false,
+                "onclick": null,
+                "showDuration": "300",
+                "hideDuration": "1000",
+                "timeOut": "5000",
+                "extendedTimeOut": "1000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            });
+
+            $('#tblPandl tbody tr').remove();
+
+            var jqxhr = $.get( "/report/{{ $subscription->id }}/fbopandl/" + fboid + "/" + num, function(data) {
+                $('#FBOpAndL').modal('show');
+
+                toastr.clear();
+
+                document.getElementById("fboTitle").innerText = $('#fbo_id_pandl').find(":selected").text();
+
+                for (i = 0; i < data.length; i++)
+                {
+                    $("#tblPandl").find('tbody')
+                        .append($('<tr>')
+                            .append($('<th>')
+                                .text(data[i].month_year)
+                            )
+                            .append($('<td>')
+                                .text(data[i].gcf_revenue)
+                            )
+                            .append($('<td>')
+                                .text(data[i].refuel_profit)
+                            )
+                            .append($('<td>')
+                                .text(data[i].maintenance_profit)
+                            )
+                            .append($('<td>')
+                                .text(data[i].equip_profit)
+                            )
+                            .append($('<td>')
+                                .text(data[i].pt_rent)
+                            )
+                            .append($('<td>')
+                                .text(data[i].supply_cost)
+                            )
+                            .append($('<td>')
+                                .text("$" + Math.round(data[i].net))
+                                .attr('style', data[i].net > 0 ? 'color:green' : 'color:red')
+                            )
+                        );
+                }
+
+
+            }).fail(function(data) {
+                toastr["error"]("Something went wrong with that request", "Uh oh", {
+                    "closeButton": true,
+                    "debug": false,
+                    "newestOnTop": false,
+                    "progressBar": false,
+                    "positionClass": "toast-bottom-full-width",
+                    "preventDuplicates": false,
+                    "onclick": null,
+                    "showDuration": "300",
+                    "hideDuration": "1000",
+                    "timeOut": "5000",
+                    "extendedTimeOut": "1000",
+                    "showEasing": "swing",
+                    "hideEasing": "linear",
+                    "showMethod": "fadeIn",
+                    "hideMethod": "fadeOut"
+                });
+            }).always(function(data) {
+                console.log(data);
+            });
+        }
+
+        function requestPandL()
+        {
+            var jqxhr = $.get("{{ route('report.requestpandl', ['subscription' => $subscription]) }}", function(data) {
+                if (data.success)
+                {
+                    toastr["success"](data.message, "Request received", {
+                        "closeButton": false,
+                        "debug": false,
+                        "newestOnTop": false,
+                        "progressBar": false,
+                        "positionClass": "toast-bottom-full-width",
+                        "preventDuplicates": false,
+                        "onclick": null,
+                        "showDuration": "1000",
+                        "hideDuration": "1000",
+                        "timeOut": "5000",
+                        "extendedTimeOut": "1000",
+                        "showEasing": "swing",
+                        "hideEasing": "linear",
+                        "showMethod": "fadeIn",
+                        "hideMethod": "fadeOut"
+                    });
+                }
+                else
+                {
+                    toastr["error"](data.message, "Too many requests!", {
+                        "closeButton": false,
+                        "debug": false,
+                        "newestOnTop": false,
+                        "progressBar": false,
+                        "positionClass": "toast-bottom-full-width",
+                        "preventDuplicates": false,
+                        "onclick": null,
+                        "showDuration": "1000",
+                        "hideDuration": "1000",
+                        "timeOut": "5000",
+                        "extendedTimeOut": "1000",
+                        "showEasing": "swing",
+                        "hideEasing": "linear",
+                        "showMethod": "fadeIn",
+                        "hideMethod": "fadeOut"
+                    });
+                }
+            });
+        }
+    </script>
+@endsection
